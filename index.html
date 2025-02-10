@@ -13,39 +13,42 @@
 
             const reader = new FileReader();
             reader.onload = () => {
-                console.log("Read as text,", reader.result);
-                const regex = /const\s+historyData\s*=\s*JSON\.parse\(\s*`(.+?)`\s*\);/;
-                const match = reader.result.match(regex);
-                if (match && match[1]) {
-                    const rawData = JSON.parse(match[1]);
-                    console.log("found matches!", rawData);
-                    rawData.history = rawData.history.map(chat => ({
-                        date: Date.now(),
-                        chat: chat.map(msg => ({
-                            isUser: msg.isUser,
-                            name: msg.name,
-                            message: decodeURIComponent(msg.message)
-                        }))
-                    }));
+                try {
+                    const regex = /const\s+historyData\s*=\s*JSON\.parse\(\s*`(.+?)`\s*\);/;
+                    const match = reader.result.match(regex);
+                    if (match && match[1]) {
+                        const rawData = JSON.parse(match[1]);
+                        console.log("found matches!", rawData);
+                        rawData.history = rawData.history.map(chat => ({
+                            date: Date.now(),
+                            chat: chat.map(msg => ({
+                                isUser: msg.isUser,
+                                name: msg.name,
+                                message: decodeURIComponent(msg.message)
+                            }))
+                        }));
 
-                    var xhr = new XMLHttpRequest();
-                    xhr.open('GET', "/old-history-to-new/ReadOffline.html", true);
-                    xhr.onreadystatechange = function () {
-                        if (xhr.readyState !== 4) return;
-                        var fileContents = xhr.responseText;
-                        fileContents = fileContents.replace(
-                            '<<<REPLACE_THIS_TEXT>>>',
-                            encodeURIComponent(JSON.stringify(rawData))
-                        );
+                        var xhr = new XMLHttpRequest();
+                        xhr.open('GET', "/old-history-to-new/ReadOffline.html", true);
+                        xhr.onreadystatechange = function () {
+                            if (xhr.readyState !== 4) return;
+                            var fileContents = xhr.responseText;
+                            fileContents = fileContents.replace(
+                                '<<<REPLACE_THIS_TEXT>>>',
+                                encodeURIComponent(JSON.stringify(rawData))
+                            );
 
-                        const blob = new Blob([fileContents], { type: 'text/html' });
-                        const url = URL.createObjectURL(blob);
-                        const link = document.createElement('a');
-                        link.href = url;
-                        link.download = `ReformattedChat.html`;
-                        link.click();
-                    };
-                    xhr.send();
+                            const blob = new Blob([fileContents], { type: 'text/html' });
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = `ReformattedChat.html`;
+                            link.click();
+                        };
+                        xhr.send();
+                    }
+                } catch (error) {
+                    alert("error: " + err.message);
                 }
             };
             reader.onerror = (err) => {
