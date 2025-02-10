@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script>
+        function handler(file) {
+            document.querySelector('input').value = ''; // Reset
+
+            const reader = new FileReader();
+            reader.onload = () => {
+                const regex = /const\s+historyData\s*=\s*JSON\.parse\(\s*`(.+?)`\s*\);/;
+                const match = reader.result.match(regex);
+                if (match && match[1]) {
+                    const rawData = JSON.parse(match[1]);
+                    rawData.history = rawData.history.map(chat => ({
+                        date: Date.now(),
+                        chat: chat.map(msg => ({
+                            isUser: msg.isUser,
+                            name: msg.name,
+                            message: decodeURIComponent(msg.message)
+                        }))
+                    }));
+
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('GET', "/ReadOffline.html", true);
+                    xhr.onreadystatechange = function () {
+                        if (xhr.readyState !== 4) return;
+                        var fileContents = xhr.responseText;
+                        fileContents = fileContents.replace(
+                            '<<<REPLACE_THIS_TEXT>>>',
+                            encodeURIComponent(JSON.stringify(rawData))
+                        );
+
+                        const blob = new Blob([fileContents], { type: 'text/html' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = `ReformattedChat.html`;
+                        link.click();
+                    };
+                    xhr.send();
+                }
+            };
+            reader.onerror = (err) => {
+                alert("error: " + err.message);
+            };
+            reader.readAsText(file);
+        }
+
+    </script>
+</head>
+
+<body>
+    <input type="file" onchange="handler"> Import here and it will automatically download the new version
+</body>
+
+</html>
